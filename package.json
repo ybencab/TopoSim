@@ -9,11 +9,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.1.17",
     "preact": "^10.27.2",
     "three": "^0.181.0"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.2",
+    "tailwindcss": "^4.1.17",
     "vite": "^7.1.7"
   }
 }
