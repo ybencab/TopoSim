@@ -18,7 +18,7 @@ export default function TopologySelector({ onSelect }) {
         onChange={handleChange}
         class="p-2 border rounded w-full"
       >
-        <option value="mesh">2D Mesh</option>
+        <option value="mesh">Mesh</option>
         <option value="toroid">Toroid</option>
         <option value="fat-tree">Fat Tree</option>
       </select>
