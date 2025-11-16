@@ -22,12 +22,19 @@ export default function TopologyCanvas({ topology, params }) {
 function LazyTopology(importFn) {
   return (props) => {
     const [Comp, setComp] = useState(null);
+
     useEffect(() => {
-      importFn().then((mod) => setComp(() => mod.default));
-    }, []);
+      let mounted = true;
+      importFn().then((mod) => {
+        if (mounted) setComp(() => mod.default);
+      });
+      return () => { mounted = false };
+    }, [importFn]); // importFn nunca cambia, pero ok
+
     return Comp ? <Comp {...props} /> : <div class="p-4 text-gray-500">Loading...</div>;
   };
 }
+
 
 function NotImplemented(name) {
   return () => (

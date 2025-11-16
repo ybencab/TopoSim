@@ -7,7 +7,24 @@ export default function Mesh({ params }) {
 
   useEffect(() => {
     const mount = mountRef.current;
+
+  // Validación de parámetros
+  const size = params?.size;
+  const dims = params?.dimensions;
+
+  if (!size || size <= 0 || ![2, 3].includes(dims)) {
+    // Mostrar mensaje de error en lugar de renderizar la topología
     while (mount.firstChild) mount.removeChild(mount.firstChild);
+    const msg = document.createElement("div");
+    msg.style.color = "red";
+    msg.style.padding = "1rem";
+    msg.textContent =
+      'Invalid parameters: "size" must be > 0 and "dimensions" must be 2 or 3.';
+    mount.appendChild(msg);
+    return;
+  }
+
+    while (mount.firstChild) mount.removeChild(mount.firstChild); // Limpiar escena previa
 
     // Escena
     const scene = new THREE.Scene();
@@ -40,10 +57,6 @@ export default function Mesh({ params }) {
     // Materiales
     const materialNode = new THREE.MeshPhongMaterial({ color: 0x1565c0 });
     const materialLink = new THREE.LineBasicMaterial({ color: 0x999999 });
-
-    // Parámetros
-    const size = params?.size || 3;
-    const dims = params?.dimensions || 2; // 2 o 3
 
     const nodes = [];
     const positions = [];

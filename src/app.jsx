@@ -5,7 +5,7 @@ import TopologySelector from "./components/topology_selector";
 
 export function App() {
   const [selectedTopology, setSelectedTopology] = useState("mesh");
-  const [params, setParams] = useState({size: 3, dimesions: 2});
+  const [params, setParams] = useState({size: 3, dimensions: 2});
 
   const handleChange = (top, p) => {
     setSelectedTopology(top);
@@ -14,7 +14,7 @@ export function App() {
 
   return (
     <div style="width: 100vw; height: 100vh; overflow: hidden;">
-      <TopologySelector onSelect={handleChange} />
+      <TopologySelector onChange={handleChange} />
       <TopologyCanvas topology={selectedTopology} params={params} />
     </div>
   );
