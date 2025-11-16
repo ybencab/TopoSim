@@ -8,21 +8,21 @@ export default function Mesh({ params }) {
   useEffect(() => {
     const mount = mountRef.current;
 
-  // Validación de parámetros
-  const size = params?.size;
-  const dims = params?.dimensions;
+    // Validación de parámetros
+    const size = params?.size;
+    const dims = params?.dimensions;
 
-  if (!size || size <= 0 || ![2, 3].includes(dims)) {
-    // Mostrar mensaje de error en lugar de renderizar la topología
-    while (mount.firstChild) mount.removeChild(mount.firstChild);
-    const msg = document.createElement("div");
-    msg.style.color = "red";
-    msg.style.padding = "1rem";
-    msg.textContent =
-      'Invalid parameters: "size" must be > 0 and "dimensions" must be 2 or 3.';
-    mount.appendChild(msg);
-    return;
-  }
+    if (!size || size <= 0 || ![2, 3].includes(dims)) {
+      // Mostrar mensaje de error en lugar de renderizar la topología
+      while (mount.firstChild) mount.removeChild(mount.firstChild);
+      const msg = document.createElement("div");
+      msg.style.color = "red";
+      msg.style.padding = "1rem";
+      msg.textContent =
+        'Invalid parameters: "size" must be > 0 and "dimensions" must be 2 or 3.';
+      mount.appendChild(msg);
+      return;
+    }
 
     while (mount.firstChild) mount.removeChild(mount.firstChild); // Limpiar escena previa
 
