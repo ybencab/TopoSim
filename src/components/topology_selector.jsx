@@ -3,6 +3,7 @@ import { useState } from "preact/hooks";
 
 const DEFAULT_PARAMS = {
   mesh: { size: 3, dimensions: 2 },
+  fat_tree: { k: 2, n: 3 },
 }
 
 export default function TopologySelector({ onChange }) {
@@ -46,8 +47,9 @@ export default function TopologySelector({ onChange }) {
         class="p-2 border rounded w-full mb-2"
       >
         <option value="mesh">Mesh</option>
-        <option value="toroid">Toroid</option>
-        <option value="fat-tree">Fat Tree</option>
+        <option value="torus">Torus</option>
+        <option value="wk">WK-Recursive</option>
+        <option value="fat_tree">Fat Tree</option>
       </select>
       {paramInputs}
     </div>

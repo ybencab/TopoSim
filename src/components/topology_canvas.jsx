@@ -1,8 +1,10 @@
 import { Suspense } from "preact/compat";
 import { useState, useEffect } from "preact/hooks";
+import TopologyStats from "./topology_stats.jsx";
 
 const TOPOLOGIES = {
   mesh: () => import("../topologies/mesh.jsx"),
+  fat_tree: () => import("../topologies/fat_tree.jsx"),
 };
 
 export default function TopologyCanvas({ topology, params }) {
@@ -10,11 +12,16 @@ export default function TopologyCanvas({ topology, params }) {
     ? LazyTopology(TOPOLOGIES[topology])
     : NotImplemented(topology);
 
+  const SHOWSTATS = !!TOPOLOGIES[topology]
   return (
-    <div class="flex-1 w-full h-full overflow-hidden bg-gray-100">
+    <div class="relative flex-1 w-full h-full overflow-hidden bg-gray-100">
       <Suspense fallback={<div class="p-4 text-gray-500">Loading...</div>}>
         <TopologyComponent params={params} />
       </Suspense>
+
+      { SHOWSTATS && (
+        <TopologyStats type={topology} params={params} />
+      )}
     </div>
   );
 }
@@ -34,7 +41,6 @@ function LazyTopology(importFn) {
     return Comp ? <Comp {...props} /> : <div class="p-4 text-gray-500">Loading...</div>;
   };
 }
-
 
 function NotImplemented(name) {
   return () => (
