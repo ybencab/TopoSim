@@ -32,11 +32,11 @@ export default function FatTree({ params }) {
 
     // Escena
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xffffff);
+    scene.background = new THREE.Color(0xf4f4f4);
 
     // Cámara (ajustada para ver el árbol de frente)
     const camera = new THREE.PerspectiveCamera(
-      60,
+      75,
       mount.clientWidth / mount.clientHeight,
       0.1,
       1000
@@ -51,8 +51,6 @@ export default function FatTree({ params }) {
     mount.appendChild(renderer.domElement);
 
     // Luz
-    const ambientLight = new THREE.AmbientLight(0x666666);
-    scene.add(ambientLight);
     const dirLight = new THREE.DirectionalLight(0xffffff, 1);
     dirLight.position.set(10, 20, 10);
     scene.add(dirLight);
@@ -67,8 +65,8 @@ export default function FatTree({ params }) {
     // --- MATERIALES ---
     const matHost = new THREE.MeshPhongMaterial({ color: 0x4caf50 }); // Verde
     const matSwitch = new THREE.MeshPhongMaterial({ color: 0x2196f3 }); // Azul
-    const matLinkHost = new THREE.LineBasicMaterial({ color: 0x81c784, opacity: 0.8, transparent: true });
-    const matLinkInter = new THREE.LineBasicMaterial({ color: 0xbbdefb, opacity: 0.5, transparent: true });
+    const matLinkHost = new THREE.LineBasicMaterial({ color: 0x999999, opacity: 0.8, transparent: true });
+    const matLinkInter = new THREE.LineBasicMaterial({ color: 0x999999, opacity: 0.5, transparent: true });
 
     // --- GEOMETRÍA ---
     const hostGeo = new THREE.SphereGeometry(0.3, 16, 16);
