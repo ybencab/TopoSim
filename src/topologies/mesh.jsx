@@ -8,68 +8,64 @@ export default function Mesh({ params }) {
   useEffect(() => {
     const mount = mountRef.current;
 
-    // Validación de parámetros
+    // --- VALIDACIÓN DE PARÁMETROS ---
     const size = params?.size;
     const dims = params?.dimensions;
 
-    if (!size || size <= 0 || ![2, 3].includes(dims)) {
-      // Mostrar mensaje de error en lugar de renderizar la topología
+    if (!size || size <= 0 || ![2, 3, 4].includes(dims)) {
       while (mount.firstChild) mount.removeChild(mount.firstChild);
       const msg = document.createElement("div");
       msg.style.color = "red";
       msg.style.padding = "1rem";
-      msg.textContent =
-        'Invalid parameters: "size" must be > 0 and "dimensions" must be 2 or 3.';
+      msg.textContent = 'Invalid parameters: "size" must be > 0 and "dimensions" must be 2, 3, or 4.';
       mount.appendChild(msg);
       return;
     }
 
-    while (mount.firstChild) mount.removeChild(mount.firstChild); // Limpiar escena previa
+    // --- SETUP BÁSICO ---
+    while (mount.firstChild) mount.removeChild(mount.firstChild);
 
-    // Escena
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xf4f4f4);
+    scene.background = new THREE.Color(0xf4f4f4); // Gris claro estándar
 
-    // Cámara
-    const camera = new THREE.PerspectiveCamera(
-      75,
-      mount.clientWidth / mount.clientHeight,
-      0.1,
-      1000
-    );
+    const camera = new THREE.PerspectiveCamera(75, mount.clientWidth / mount.clientHeight, 0.1, 1000);
     camera.position.set(5, 5, 5);
 
-    // Renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     mount.appendChild(renderer.domElement);
 
-    // Luz
-    const light = new THREE.PointLight(0xffffff, 1);
-    light.position.set(10, 10, 10);
-    scene.add(light);
-
-    // Controles
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.1;
 
-    // Materiales
-    const materialNode = new THREE.MeshPhongMaterial({ color: 0x1565c0 });
-    const materialLink = new THREE.LineBasicMaterial({ color: 0x999999 });
+    // Iluminación
+    const ambientLight = new THREE.AmbientLight(0x404040);
+    scene.add(ambientLight);
+    const light = new THREE.PointLight(0xffffff, 1);
+    light.position.set(10, 10, 10);
+    scene.add(light);
+
+    // --- MATERIALES ---
+    const materialLink = new THREE.LineBasicMaterial({ color: 0x999999, opacity: 0.6, transparent: true });
 
     const nodes = [];
     const positions = [];
 
-    // Generar nodos
+    // Función para crear color en 4D
+    const getColorForW = (w, maxW) => {
+      const hue = (w / maxW) * 0.7; 
+      return new THREE.Color().setHSL(hue, 0.8, 0.5);
+    };
+
+    // --- GENERACIÓN DE NODOS ---
     const range = [...Array(size).keys()];
+    
     if (dims === 2) {
       for (let i of range) {
         for (let j of range) {
-          const node = new THREE.Mesh(
-            new THREE.SphereGeometry(0.1, 16, 16),
-            materialNode
-          );
+          const material = new THREE.MeshPhongMaterial({ color: 0x1565c0 }); // Azul estándar
+          const node = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), material);
           node.position.set(i - size / 2, 0, j - size / 2);
           scene.add(node);
           nodes.push(node);
@@ -80,10 +76,8 @@ export default function Mesh({ params }) {
       for (let i of range) {
         for (let j of range) {
           for (let k of range) {
-            const node = new THREE.Mesh(
-              new THREE.SphereGeometry(0.1, 16, 16),
-              materialNode
-            );
+            const material = new THREE.MeshPhongMaterial({ color: 0x1565c0 }); // Azul estándar
+            const node = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), material);
             node.position.set(i - size / 2, j - size / 2, k - size / 2);
             scene.add(node);
             nodes.push(node);
@@ -91,9 +85,31 @@ export default function Mesh({ params }) {
           }
         }
       }
+    } else if (dims === 4) {
+      for (let i of range) {
+        for (let j of range) {
+          for (let k of range) {
+            for (let w of range) {
+              const color = getColorForW(w, size - 1);
+              const material = new THREE.MeshPhongMaterial({ color });
+              const node = new THREE.Mesh(new THREE.SphereGeometry(0.08, 16, 16), material);
+              
+              const offset = (w - size / 2) * 0.3;
+              node.position.set(
+                i - size / 2 + offset,
+                j - size / 2 + offset,
+                k - size / 2 + offset
+              );
+              scene.add(node);
+              nodes.push(node);
+              positions.push([i, j, k, w]);
+            }
+          }
+        }
+      }
     }
 
-    // Crear enlaces
+    // --- GENERACIÓN DE ENLACES ---
     const connect = (a, b) => {
       const points = [nodes[a].position, nodes[b].position];
       const geometry = new THREE.BufferGeometry().setFromPoints(points);
@@ -101,9 +117,10 @@ export default function Mesh({ params }) {
       scene.add(line);
     };
 
-    const indexAt = (i, j, k = 0) => {
+    const indexAt = (i, j, k = 0, w = 0) => {
       if (dims === 2) return i * size + j;
-      return i * size * size + j * size + k;
+      if (dims === 3) return i * size * size + j * size + k;
+      return i * size * size * size + j * size * size + k * size + w;
     };
 
     if (dims === 2) {
@@ -125,6 +142,20 @@ export default function Mesh({ params }) {
           }
         }
       }
+    } else if (dims === 4) {
+      for (let i of range) {
+        for (let j of range) {
+          for (let k of range) {
+            for (let w of range) {
+              const index = indexAt(i, j, k, w);
+              if (i < size - 1) connect(index, indexAt(i + 1, j, k, w));
+              if (j < size - 1) connect(index, indexAt(i, j + 1, k, w));
+              if (k < size - 1) connect(index, indexAt(i, j, k + 1, w));
+              if (w < size - 1) connect(index, indexAt(i, j, k, w + 1));
+            }
+          }
+        }
+      }
     }
 
     // Animación
@@ -135,9 +166,9 @@ export default function Mesh({ params }) {
     };
     animate();
 
-    // Cleanup
+    // Limpieza
     return () => {
-      mount.removeChild(renderer.domElement);
+      if (mount) mount.removeChild(renderer.domElement);
     };
   }, [params]);
 
