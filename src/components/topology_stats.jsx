@@ -71,6 +71,42 @@ const calculateMetrics = (type, params) => {
     stats.totalLinks = 2 * n * Math.pow(k, n);
   }
 
+// --- WK-RECURSIVE ---
+  else if (type === "wk") {
+    // Parámetros: k (nodos en bloque base), l (nivel de expansión)
+    const k = params.k || 4;
+    const l = params.l || 3;
+    const N = Math.pow(k, l);
+
+    // WK es altamente simétrico y regular (salvo las esquinas abiertas globales)
+    stats.symmetry = "Yes (Vertex-symmetric)";
+    stats.homogeneity = "Mostly (Corners degree K-1)";
+
+    // Grado: Constante K (K-1 enlaces internos + 1 expansión)
+    stats.degree = k;
+
+    // Bisection Bandwidth: 
+    // En el nivel superior es un grafo completo de K bloques. 
+    // Cortar por la mitad rompe (K/2 * K/2) enlaces virtuales.
+    // Multiplicamos por 2 para ancho de banda unidireccional.
+    stats.bisectionBandwidth = 2 * Math.floor((k * k) / 4);
+
+    // Hop Count (Diámetro): D = 2^L - 1
+    // Esta es una de las ventajas clave de WK, diámetro pequeño independiente de K.
+    stats.hopCount = Math.pow(2, l) - 1;
+
+    // Conectividad: K-1 (Grado del bloque virtual)
+    stats.connectivity = k - 1;
+
+    stats.totalSwitches = N;
+
+    // Enlaces Totales:
+    // Cada nodo tiene grado K, excepto los K "corners" globales que tienen K-1.
+    // Total puertos usados = N*K - K (puertos abiertos).
+    // Son enlaces unidireccionales en esta métrica.
+    stats.totalLinks = N * k - k; 
+  }
+
   return stats;
 };
 
