@@ -5,6 +5,7 @@ import TopologyStats from "./topology_stats.jsx";
 const TOPOLOGIES = {
   mesh: () => import("../topologies/mesh.jsx"),
   fat_tree: () => import("../topologies/fat_tree.jsx"),
+  wk: () => import("../topologies/wk_recursive.jsx"),
 };
 
 export default function TopologyCanvas({ topology, params }) {
