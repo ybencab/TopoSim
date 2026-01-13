@@ -74,6 +74,26 @@ export default function WKRecursiveTopology({ params }) {
     const k = params?.k || 4;
     const l = params?.l || 3;
 
+    // --- LÍMITES (SUPERIORES E INFERIORES) ---
+    const minK = 3, maxK = 8;
+    const minL = 1, maxL = 5;
+
+    if (k < minK || k > maxK || l < minL || l > maxL) {
+      while (mount.firstChild) mount.removeChild(mount.firstChild);
+      const msg = document.createElement("div");
+      msg.style.color = "#d32f2f";
+      msg.style.padding = "2rem";
+      msg.style.textAlign = "center";
+      msg.style.fontFamily = "sans-serif";
+      msg.innerHTML = `
+        <strong>Parameters out of range</strong><br/><br/>
+        K (Nodes/Block): ${k} (Allowed: ${minK} - ${maxK})<br/>
+        L (Levels): ${l} (Allowed: ${minL} - ${maxL})
+      `;
+      mount.appendChild(msg);
+      return;
+    }
+
     // --- SETUP BÁSICO ---
     while (mount.firstChild) mount.removeChild(mount.firstChild);
 

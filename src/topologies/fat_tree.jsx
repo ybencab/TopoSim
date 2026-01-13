@@ -8,27 +8,56 @@ export default function FatTree({ params }) {
   useEffect(() => {
     const mount = mountRef.current;
 
-    // Validación de parámetros
-    // k = aridad (número de puertos hacia abajo/arriba)
-    // n = número de etapas de switches
+    // --- VALIDACIÓN DE PARÁMETROS Y LÍMITES ---
     const k = params?.k || 2; 
     const n = params?.n || 3;
 
-    // Calculamos el número total de nodos finales para evitar colgar el navegador
-    const numHosts = Math.pow(k, n);
-    const numSwitchesPerStage = Math.pow(k, n - 1);
+    // Límites individuales
+    const minK = 2, maxK = 4;
+    const minN = 2, maxN = 5;
 
-    if (numHosts > 256 || n > 5) {
+    // Cálculo de carga
+    const numHosts = Math.pow(k, n);
+    
+    // Validaciones
+    const isParamsInvalid = k < minK || k > maxK || n < minN || n > maxN;
+    const isTooLarge = numHosts > 1024; // Límite de seguridad global (ej. 8^4 es demasiado)
+
+    if (isParamsInvalid || isTooLarge) {
       while (mount.firstChild) mount.removeChild(mount.firstChild);
       const msg = document.createElement("div");
-      msg.style.color = "red";
-      msg.style.padding = "1rem";
-      msg.textContent = `Topology too large to render efficiently (Hosts: ${numHosts}). Try k=2, n=4 or k=4, n=3.`;
+      msg.style.color = "#d32f2f";
+      msg.style.padding = "2rem";
+      msg.style.textAlign = "center";
+      msg.style.fontFamily = "sans-serif";
+
+      let errorText = "";
+
+      if (isTooLarge) {
+        // Mensaje específico si la combinación explota exponencialmente
+        errorText = `
+          <strong>Topology too massive</strong><br/><br/>
+          Hosts generated: ${numHosts.toLocaleString()}<br/>
+          (Limit: 1,024)<br/>
+          Try reducing K or N.
+        `;
+      } else {
+        // Mensaje de rangos estándar
+        errorText = `
+          <strong>Parameters out of range</strong><br/><br/>
+          K (Arity): ${k} (Allowed: ${minK} - ${maxK})<br/>
+          N (Stages): ${n} (Allowed: ${minN} - ${maxN})
+        `;
+      }
+
+      msg.innerHTML = errorText;
       mount.appendChild(msg);
       return;
     }
 
     // --- SETUP BÁSICO ---
+    const numSwitchesPerStage = Math.pow(k, n - 1);
+    
     while (mount.firstChild) mount.removeChild(mount.firstChild);
 
     const scene = new THREE.Scene();
@@ -55,6 +84,7 @@ export default function FatTree({ params }) {
     scene.add(dirLight);
 
     // --- MATERIALES ---
+    // Paleta Unificada: Host (Azul), Switch (Gris Azulado), Core (Rojo)
     const matHost = new THREE.MeshPhongMaterial({ color: 0x1565c0 }); 
     const matSwitch = new THREE.MeshPhongMaterial({ color: 0x607d8b }); 
     const matCore = new THREE.MeshPhongMaterial({ color: 0xd32f2f });
@@ -148,6 +178,13 @@ export default function FatTree({ params }) {
         mount.removeChild(renderer.domElement);
       }
       renderer.dispose();
+      hostGeo.dispose();
+      switchGeo.dispose();
+      matHost.dispose();
+      matSwitch.dispose();
+      matCore.dispose();
+      matLinkHost.dispose();
+      matLinkInter.dispose();
     };
   }, [params]);
 

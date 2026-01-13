@@ -8,16 +8,41 @@ export default function Mesh({ params }) {
   useEffect(() => {
     const mount = mountRef.current;
 
-    // --- VALIDACIÓN DE PARÁMETROS ---
+    // --- VALIDACIÓN DE PARÁMETROS Y LÍMITES ---
     const size = params?.size;
     const dims = params?.dimensions;
 
-    if (!size || size <= 0 || ![2, 3, 4].includes(dims)) {
+    // 1. Definir límites según la dimensión para evitar colapsar el navegador
+    let maxSize = 25; // Límite para 2D
+    if (dims === 3) maxSize = 10;
+    if (dims === 4) maxSize = 5;
+
+    const minSize = 2;
+
+    // 2. Comprobar validez
+    const isInvalidParams = !size || !dims || ![2, 3, 4].includes(dims);
+    const isOutOrRange = size < minSize || size > maxSize;
+
+    if (isInvalidParams || isOutOrRange) {
       while (mount.firstChild) mount.removeChild(mount.firstChild);
       const msg = document.createElement("div");
-      msg.style.color = "red";
-      msg.style.padding = "1rem";
-      msg.textContent = 'Invalid parameters: "size" must be > 0 and "dimensions" must be 2, 3, or 4.';
+      msg.style.color = "#d32f2f";
+      msg.style.padding = "2rem";
+      msg.style.textAlign = "center";
+      msg.style.fontFamily = "sans-serif";
+      
+      let errorText = 'Invalid parameters.';
+      if (isOutOrRange) {
+        errorText = `
+          <strong>Size out of range for ${dims}D</strong><br/><br/>
+          Size: ${size} <br/>
+          Allowed: ${minSize} - ${maxSize}
+        `;
+      } else {
+        errorText = 'Supported dimensions: 2, 3, or 4.';
+      }
+
+      msg.innerHTML = errorText;
       mount.appendChild(msg);
       return;
     }
@@ -29,7 +54,7 @@ export default function Mesh({ params }) {
     scene.background = new THREE.Color(0xf4f4f4); // Gris claro estándar
 
     const camera = new THREE.PerspectiveCamera(75, mount.clientWidth / mount.clientHeight, 0.1, 1000);
-    camera.position.set(5, 5, 5);
+    camera.position.set(size, size, size * 1.5);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(mount.clientWidth, mount.clientHeight);
@@ -47,41 +72,37 @@ export default function Mesh({ params }) {
     scene.add(light);
 
     // --- MATERIALES ---
+    // Usamos el Azul Unificado (0x1565c0) para todas las dimensiones
+    const materialNode = new THREE.MeshPhongMaterial({ color: 0x1565c0 });
     const materialLink = new THREE.LineBasicMaterial({ color: 0x999999, opacity: 0.6, transparent: true });
 
     const nodes = [];
-    const positions = [];
-
-    // Función para crear color en 4D
-    const getColorForW = (w, maxW) => {
-      const hue = (w / maxW) * 0.7; 
-      return new THREE.Color().setHSL(hue, 0.8, 0.5);
-    };
+    // Nota: 'positions' se guardaba en tu código original pero no se usaba después,
+    // se puede omitir si solo usamos nodes[x].position.
 
     // --- GENERACIÓN DE NODOS ---
     const range = [...Array(size).keys()];
     
+    // Geometría reutilizable
+    const geometrySphere = new THREE.SphereGeometry(dims === 4 ? 0.08 : 0.1, 16, 16);
+
     if (dims === 2) {
       for (let i of range) {
         for (let j of range) {
-          const material = new THREE.MeshPhongMaterial({ color: 0x1565c0 }); // Azul estándar
-          const node = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), material);
-          node.position.set(i - size / 2, 0, j - size / 2);
+          const node = new THREE.Mesh(geometrySphere, materialNode);
+          node.position.set(i - size / 2, j - size / 2, 0);
           scene.add(node);
           nodes.push(node);
-          positions.push([i, 0, j]);
         }
       }
     } else if (dims === 3) {
       for (let i of range) {
         for (let j of range) {
           for (let k of range) {
-            const material = new THREE.MeshPhongMaterial({ color: 0x1565c0 }); // Azul estándar
-            const node = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), material);
+            const node = new THREE.Mesh(geometrySphere, materialNode);
             node.position.set(i - size / 2, j - size / 2, k - size / 2);
             scene.add(node);
             nodes.push(node);
-            positions.push([i, j, k]);
           }
         }
       }
@@ -90,9 +111,8 @@ export default function Mesh({ params }) {
         for (let j of range) {
           for (let k of range) {
             for (let w of range) {
-              const color = getColorForW(w, size - 1);
-              const material = new THREE.MeshPhongMaterial({ color });
-              const node = new THREE.Mesh(new THREE.SphereGeometry(0.08, 16, 16), material);
+              // En 4D usamos el mismo material azul unificado
+              const node = new THREE.Mesh(geometrySphere, materialNode);
               
               const offset = (w - size / 2) * 0.3;
               node.position.set(
@@ -102,7 +122,6 @@ export default function Mesh({ params }) {
               );
               scene.add(node);
               nodes.push(node);
-              positions.push([i, j, k, w]);
             }
           }
         }
@@ -169,6 +188,10 @@ export default function Mesh({ params }) {
     // Limpieza
     return () => {
       if (mount) mount.removeChild(renderer.domElement);
+      // Limpieza de recursos Three.js
+      geometrySphere.dispose();
+      materialNode.dispose();
+      materialLink.dispose();
     };
   }, [params]);
 
