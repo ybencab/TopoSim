@@ -51,7 +51,12 @@ export default function Mesh({ params }) {
     scene.background = new THREE.Color(0xf4f4f4); 
 
     const camera = new THREE.PerspectiveCamera(75, mount.clientWidth / mount.clientHeight, 0.1, 1000);
-    camera.position.set(size * 1.5, size * 2.5, size * 3.5);
+    
+    if (dims === 4) {
+      camera.position.set(size * 3, size * 2, size * 3);
+    } else {
+      camera.position.set(size * 1.5, size * 2.5, size * 3.5);
+    }
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(mount.clientWidth, mount.clientHeight);
@@ -108,6 +113,9 @@ export default function Mesh({ params }) {
         }
       }
     } else if (dims === 4) {
+      // Colocamos los cubos 3D uno al lado del otro horizontalmente
+      const spacing = size * 1.5; // Espaciado entre cubos
+      
       for (let i of range) {
         for (let j of range) {
           for (let k of range) {
@@ -116,13 +124,13 @@ export default function Mesh({ params }) {
               const material4D = new THREE.MeshPhongMaterial({ color });
               const node = new THREE.Mesh(geometrySphere, material4D);
               
-              const offsetBase = (w - size / 2) * 1.2; 
-              const offsetVertical = (w - size / 2) * 2; 
+              // Desplazamiento horizontal para cada cubo W
+              const offsetW = (w - (size - 1) / 2) * spacing;
 
               node.position.set(
-                i - size / 2 + offsetBase,
-                j - size / 2 + offsetVertical, 
-                k - size / 2 + offsetBase
+                i - size / 2 + offsetW,  // Desplazamiento horizontal por W
+                j - size / 2,             // Y normal
+                k - size / 2              // Z normal
               );
               scene.add(node);
               nodes.push(node);
@@ -133,7 +141,30 @@ export default function Mesh({ params }) {
     }
 
     // --- GENERACIÓN DE ENLACES ---
-    // Modificamos connect para aceptar un material personalizado
+    // Función para enlaces curvados (para la dimensión W en 4D)
+    const connectCurved = (a, b, material) => {
+      const posA = nodes[a].position;
+      const posB = nodes[b].position;
+      
+      const midPoint = new THREE.Vector3(
+        (posA.x + posB.x) / 2,
+        (posA.y + posB.y) / 2,
+        (posA.z + posB.z) / 2
+      );
+      
+      const distance = posA.distanceTo(posB);
+      const elevation = distance * 0.25;
+      
+      // Elevar hacia arriba (en Y)
+      midPoint.y += elevation;
+      
+      const curve = new THREE.QuadraticBezierCurve3(posA, midPoint, posB);
+      const points = curve.getPoints(20);
+      const geometry = new THREE.BufferGeometry().setFromPoints(points);
+      const line = new THREE.Line(geometry, material);
+      scene.add(line);
+    };
+
     const connect = (a, b, customMaterial = materialLink) => {
       const points = [nodes[a].position, nodes[b].position];
       const geometry = new THREE.BufferGeometry().setFromPoints(points);
@@ -173,13 +204,15 @@ export default function Mesh({ params }) {
             for (let w of range) {
               const index = indexAt(i, j, k, w);
               
-              // Enlaces normales (X, Y, Z) -> materialLink (gris)
+              // Enlaces normales dentro de cada cubo (X, Y, Z) -> materialLink (gris)
               if (i < size - 1) connect(index, indexAt(i + 1, j, k, w), materialLink);
               if (j < size - 1) connect(index, indexAt(i, j + 1, k, w), materialLink);
               if (k < size - 1) connect(index, indexAt(i, j, k + 1, w), materialLink);
               
-              // Enlace de la 4ta dimensión (W) -> materialHyperLink (ROJO)
-              if (w < size - 1) connect(index, indexAt(i, j, k, w + 1), materialHyperLink);
+              // Enlace de la 4ta dimensión (W) entre cubos -> materialHyperLink (ROJO, arqueado)
+              if (w < size - 1) {
+                connectCurved(index, indexAt(i, j, k, w + 1), materialHyperLink);
+              }
             }
           }
         }
@@ -198,7 +231,7 @@ export default function Mesh({ params }) {
       geometrySphere.dispose();
       materialNode.dispose();
       materialLink.dispose();
-      materialHyperLink.dispose(); // Limpiamos el nuevo material
+      materialHyperLink.dispose();
     };
   }, [params]);
 
