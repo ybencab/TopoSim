@@ -5,7 +5,7 @@ const DEFAULT_PARAMS = {
   mesh: { size: 3, dimensions: 2 },
   fat_tree: { k: 2, n: 3 },
   wk: { k: 3, l: 2 },
-  torus: { size: 3, dimensions: 3 }
+  torus: { size: 4, dimensions: 2 }
 }
 
 export default function TopologySelector({ onChange }) {
