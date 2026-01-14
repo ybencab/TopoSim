@@ -92,6 +92,9 @@ export default function Mesh({ params }) {
     const range = [...Array(size).keys()];
     const geometrySphere = new THREE.SphereGeometry(dims === 4 ? 0.08 : 0.1, 16, 16);
 
+    // CONSTANTE CLAVE: En 4D siempre dibujaremos solo 2 "cortes" (cubos)
+    const fixedWSize = 2; 
+
     if (dims === 2) {
       for (let i of range) {
         for (let j of range) {
@@ -119,18 +122,19 @@ export default function Mesh({ params }) {
       for (let i of range) {
         for (let j of range) {
           for (let k of range) {
-            for (let w of range) {
-              const color = getColorForW(w, size - 1);
+            for (let w = 0; w < fixedWSize; w++) {
+              // Usamos fixedWSize para el cálculo de color
+              const color = getColorForW(w, fixedWSize);
               const material4D = new THREE.MeshPhongMaterial({ color });
               const node = new THREE.Mesh(geometrySphere, material4D);
               
-              // Desplazamiento horizontal para cada cubo W
-              const offsetW = (w - (size - 1) / 2) * spacing;
+              // Centramos los 2 cubos: (w - 0.5) nos da -0.5 y +0.5
+              const offsetW = (w - (fixedWSize - 1) / 2) * spacing;
 
               node.position.set(
-                i - size / 2 + offsetW,  // Desplazamiento horizontal por W
-                j - size / 2,             // Y normal
-                k - size / 2              // Z normal
+                i - size / 2 + offsetW, // Desplazamiento horizontal
+                j - size / 2,
+                k - size / 2
               );
               scene.add(node);
               nodes.push(node);
@@ -175,7 +179,11 @@ export default function Mesh({ params }) {
     const indexAt = (i, j, k = 0, w = 0) => {
       if (dims === 2) return i * size + j;
       if (dims === 3) return i * size * size + j * size + k;
-      return i * size * size * size + j * size * size + k * size + w;
+      
+      // Para calcular el índice en 4D, usamos fixedWSize (2)
+      // porque 'w' es el bucle más interno y solo tiene 2 elementos.
+      // Estructura del array: [ ...bloque_ij_k0_w0, bloque_ij_k0_w1... ]
+      return i * (size * size * fixedWSize) + j * (size * fixedWSize) + k * fixedWSize + w;
     };
 
     if (dims === 2) {
@@ -201,16 +209,19 @@ export default function Mesh({ params }) {
       for (let i of range) {
         for (let j of range) {
           for (let k of range) {
-            for (let w of range) {
+            // Iteramos solo hasta fixedWSize (2)
+            for (let w = 0; w < fixedWSize; w++) {
               const index = indexAt(i, j, k, w);
               
-              // Enlaces normales dentro de cada cubo (X, Y, Z) -> materialLink (gris)
+              // Enlaces normales dentro de cada cubo (X, Y, Z)
+              // Conectamos con el vecino manteniendo 'w' constante
               if (i < size - 1) connect(index, indexAt(i + 1, j, k, w), materialLink);
               if (j < size - 1) connect(index, indexAt(i, j + 1, k, w), materialLink);
               if (k < size - 1) connect(index, indexAt(i, j, k + 1, w), materialLink);
               
-              // Enlace de la 4ta dimensión (W) entre cubos -> materialHyperLink (ROJO, arqueado)
-              if (w < size - 1) {
+              // Enlace de la 4ta dimensión (W) entre cubos
+              // Solo conectamos si w < 1 (es decir, conecta el cubo 0 con el 1)
+              if (w < fixedWSize - 1) {
                 connectCurved(index, indexAt(i, j, k, w + 1), materialHyperLink);
               }
             }
