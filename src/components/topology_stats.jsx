@@ -5,15 +5,14 @@ const calculateMetrics = (type, params) => {
     symmetry: "No",
     degree: 0,
     homogeneity: "No",
-    bisectionBandwidth: 0,
-    hopCount: 0,
+    bisectionWidth: 0,
+    hopCount: 0, 
     connectivity: 0,
     totalSwitches: 0,
     totalLinks: 0,
   };
 
-  // --- MESH ---
-  // Parámetros: tamaño (k), dimensiones (n)
+  // --- MESH (Malla) ---
   if (type === "mesh") {
     const k = params.size;
     const n = params.dimensions;
@@ -21,61 +20,72 @@ const calculateMetrics = (type, params) => {
 
     stats.symmetry = "No (Asymmetric at edges)";
     stats.homogeneity = "No (Corners degree n, center 2n)";
-    stats.degree = `Max: ${2 * n}, Min: ${n}`;
-    
-    // Bisección: cortar por la mitad rompe k^(n-1) enlaces  bidireccionales
-    // Enlaces unidireccionales = 2 * k^(n-1)
-    stats.bisectionBandwidth = 2 * Math.pow(k, n - 1);
-    
-    // Hop Count / Diámetro: n * (k - 1)
+    stats.degree = `Max: ${2 * n}`;
+
     stats.hopCount = n * (k - 1);
-    
-    // Connectivity: Degree of the corner node
+
+    // Bisección (Enlaces físicos): k^(n-1)
+    stats.bisectionWidth = Math.pow(k, n - 1);
+
     stats.connectivity = n;
-    
     stats.totalSwitches = N;
     
-    // Enlaces: n * k^(n-1) * (k-1) son enlaces bidireccionales
-    // Multiplicamos por 2 para unidireccionales
-    stats.totalLinks = 2 * n * Math.pow(k, n - 1) * (k - 1);
+    // Total Enlaces (Aristas del grafo): n * k^(n-1) * (k-1)
+    // Para 3x3 (k=3, n=2): 2 * 3^1 * 2 = 12 enlaces.
+    stats.totalLinks = n * Math.pow(k, n - 1) * (k - 1);
   }
 
-  // --- FAT TREE (k-ary n-tree) ---
-  // Parámetros: k (puertos), n (etapas/niveles)
+  // --- TORUS (Toro) ---
+  else if (type === "torus") {
+    const k = params.size;
+    const n = params.dimensions;
+    const N = Math.pow(k, n);
+
+    stats.symmetry = "Yes";
+    stats.homogeneity = "Yes";
+    stats.degree = 2 * n;
+
+    stats.hopCount = n * Math.floor(k / 2);
+
+    // Bisección (Enlaces físicos): 2 * k^(n-1)
+    stats.bisectionWidth = 2 * Math.pow(k, n - 1);
+
+    stats.connectivity = 2 * n;
+    stats.totalSwitches = N;
+    
+    // Total Enlaces: n * N
+    // Cada nodo añade n enlaces "nuevos" (o 2n compartido entre 2)
+    stats.totalLinks = n * N;
+  }
+
+  // --- FAT TREE ---
   else if (type === "fat_tree") {
-    const k = params.k;
-    const n = params.n;
+    const k = params.k; 
+    const n = params.n; 
+    const numHosts = Math.pow(k, n);
     const numSwitches = n * Math.pow(k, n - 1);
 
-    stats.symmetry = "No (Hierarchical)";
-    stats.homogeneity = "Yes (Fixed degree 2k)";
-    stats.degree = 2 * k;
+    stats.symmetry = "No";
+    stats.homogeneity = "Yes";
+    stats.degree = `Switch: ${2 * k}`; 
     
-    // Bisección: Determinada por la raíz.
-    // La capacidad total de bisección es NumHosts * 1 (full bisection) / 2 mitades
-    // Enlaces unidireccionales cruzando el corte: k^n
-    stats.bisectionBandwidth = Math.pow(k, n); 
-    
-    // Hop Count: Subir a la raíz (n) + Bajar al destino (n) = 2n
     stats.hopCount = 2 * n; 
     
-    stats.connectivity = k; // Enlaces mínimos a cortar para aislar un subárbol
-    
+    // Bisección (Enlaces físicos): N / 2
+    // En el corte superior, la mitad de los hosts comunican con la otra mitad.
+    stats.bisectionWidth = numHosts / 2; 
+
+    stats.connectivity = k; 
     stats.totalSwitches = numSwitches;
     
-    // Enlaces: 
-    // - Hosts a primera etapa: k^n
-    // - Entre etapas (n-1 niveles): (n-1) * k^n
-    // Total bidireccional = n * k^n
-    // Total unidireccional = 2 * n * k^n
-    stats.totalLinks = 2 * n * Math.pow(k, n);
+    // Total Enlaces: n niveles * N enlaces por nivel
+    stats.totalLinks = n * numHosts;
   }
 
-// --- WK-RECURSIVE ---
+  // --- WK-RECURSIVE ---
   else if (type === "wk") {
-    // Parámetros: k (nodos en bloque base), l (nivel de expansión)
     const k = params.k || 4;
-    const l = params.l || 3;
+    const l = params.l || 3; 
     const N = Math.pow(k, l);
 
     // WK es altamente simétrico y regular (salvo las esquinas abiertas globales)
@@ -85,26 +95,18 @@ const calculateMetrics = (type, params) => {
     // Grado: Constante K (K-1 enlaces internos + 1 expansión)
     stats.degree = k;
 
-    // Bisection Bandwidth: 
-    // En el nivel superior es un grafo completo de K bloques. 
-    // Cortar por la mitad rompe (K/2 * K/2) enlaces virtuales.
-    // Multiplicamos por 2 para ancho de banda unidireccional.
-    stats.bisectionBandwidth = 2 * Math.floor((k * k) / 4);
-
-    // Hop Count (Diámetro): D = 2^L - 1
-    // Esta es una de las ventajas clave de WK, diámetro pequeño independiente de K.
     stats.hopCount = Math.pow(2, l) - 1;
 
-    // Conectividad: K-1 (Grado del bloque virtual)
-    stats.connectivity = k - 1;
+    // Bisección aproximada (Enlaces físicos)
+    stats.bisectionWidth = k; 
 
+    stats.connectivity = k - 1;
     stats.totalSwitches = N;
 
-    // Enlaces Totales:
-    // Cada nodo tiene grado K, excepto los K "corners" globales que tienen K-1.
-    // Total puertos usados = N*K - K (puertos abiertos).
-    // Son enlaces unidireccionales en esta métrica.
-    stats.totalLinks = N * k - k; 
+    // Total Enlaces (Aristas):
+    // Suma de grados / 2.
+    // Grado total interno = (N * K) - K (puertos libres)
+    stats.totalLinks = (N * k - k) / 2; 
   }
 
   return stats;
@@ -117,26 +119,21 @@ export default function TopologyStats({ type, params }) {
     <div className="absolute top-4 right-4 z-50 w-80 p-4 font-sans text-sm bg-white/95 backdrop-blur-md rounded-lg shadow-2xl border border-gray-200">
       
       <h3 className="pb-2 mb-3 text-base font-bold text-gray-800 border-b border-gray-300">
-        Topology Analysis
+        Topology Analysis (Physical)
       </h3>
       
-      { /* Grid de datos */ }
       <div className="flex flex-col gap-3">
         <StatRow label="Symmetry" value={stats.symmetry} />
         <StatRow label="Homogeneity" value={stats.homogeneity} />
         <StatRow label="Switch Degree" value={stats.degree} />
-        <StatRow label="Hop Count (Ø)" value={stats.hopCount} />
-        <StatRow label="Bisection BW" value={stats.bisectionBandwidth} />
+        <StatRow label="Hop Count" value={stats.hopCount} />
+        <StatRow label="Bisection BW" value={`${stats.bisectionWidth.toLocaleString()} links`} />
         <StatRow label="Connectivity" value={stats.connectivity} />
         
         <div className="my-1 border-t border-gray-200" />
         
         <StatRow label="Total Switches" value={stats.totalSwitches.toLocaleString()} highlight />
         <StatRow label="Total Links" value={stats.totalLinks.toLocaleString()} highlight />
-      </div>
-
-      <div className="mt-4 text-xs italic text-gray-500 leading-tight opacity-80">
-        * Diameter in cycles is assumed equal to Hop Count (1 cycle/hop).
       </div>
     </div>
   );
