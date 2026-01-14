@@ -50,7 +50,7 @@ Before you begin, ensure you have the following installed on your machine:
     ```
 
 4.  **Open in browser**
-    Visit the URL shown in your terminal (usually `http://localhost:5173`).
+    Visit the URL shown in your terminal (you can change it in `vite.config.js` file).
 
 ## Project Structure
 
